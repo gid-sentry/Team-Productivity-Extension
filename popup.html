@@ -1,0 +1,77 @@
+<html>
+    <head>
+        <style type="text/css">
+            body {
+              min-width: 200px; /* your desired width */
+              max-width: 100%;
+              position: relative;
+              vertical-align:middle;
+            }
+            .dropbtn {
+  background-color: #73867f;
+  color: white;
+  padding: 2px;
+  font-size: 12px;
+  border: none;
+}
+
+/* The container <div> - needed to position the dropdown content */
+.dropdown {
+  position: relative;
+  display: inline-block;
+}
+
+/* Dropdown Content (Hidden by Default) */
+.dropdown-content {
+  display: none;
+  position: absolute;
+  background-color: #f1f1f1;
+  min-width: 10px;
+  box-shadow: 0px 8px 16px 0px rgba(0,0,0,0.2);
+  z-index: 1;
+}
+
+/* Links inside the dropdown */
+.dropdown-content a {
+  color: black;
+  padding: 0px;
+  text-decoration: none;
+  display: block;
+}
+
+/* Change color of dropdown links on hover */
+.dropdown-content a:hover {background-color: #ddd;}
+
+/* Show the dropdown menu on hover */
+.dropdown:hover .dropdown-content {display: block;}
+
+/* Change the background color of the dropdown button when the dropdown content is shown */
+.dropdown:hover .dropbtn {background-color: #616786;}
+.header {
+  padding: 2px;
+  text-align: center;
+  background: #6f7070;
+  color: white;
+  font-size: 12px;
+}
+            </style>
+            <div class="header">
+                <h3> The top <div class="dropdown">
+                    <!-- <label for="teamNumbers"></label> -->
+                    <select name="teamNumbers" id="teamNumbers">
+                    <option value="5">5</option>
+                    <option value="6">6</option>
+                    <option value="7">7</option>
+                    <option value="8">8</option>
+                    </select>
+                  </div> teams by assigned issues are:</h1>
+            </div>
+    </head>
+    <body>
+        <p>
+
+        </p>
+    </body>
+</html>
+<script src="popup.js"></script>
+

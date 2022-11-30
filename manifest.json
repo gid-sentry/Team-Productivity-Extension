@@ -1,0 +1,16 @@
+{
+    "manifest_version": 3,
+    "name": "Top loaded teams",
+    "version": "1.0",
+    "description": "List teams with highest amount of issues assigned",
+    "host_permissions": [
+      "*://*.sentry.io/"
+    ],
+    "permissions": [
+      "cookies",
+      "tabs"
+    ],
+    "action": {
+      "default_popup": "popup.html"
+    }
+  }
