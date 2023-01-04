@@ -57,8 +57,9 @@ function addTeamSpan(sortedArray) {
   text = document.createTextNode("Unresovled issues")
   secondCell.appendChild(text);
   secondCell.style.border = '1px solid black';
-  let tabDiv = document.createElement('div');
+  let tabDiv = document.getElementById('teamTabs') ?? document.createElement('div');
   tabDiv.setAttribute('class','tab');
+  tabDiv.setAttribute('id', 'teamTabs')
 
   sortedArray.forEach(key => {
     const tr = tbl.insertRow()
@@ -71,28 +72,37 @@ function addTeamSpan(sortedArray) {
     teamIssues.appendChild(text)
     teamIssues.style.border = '1px solid black';
 
-    // add tab for each taem
-    const tab = document.createElement('button')
-    tab.setAttribute('class', 'tablinks');
-    tab.setAttribute('id',key);
-    tab.setAttribute('value',key);
-    // tab.setAttribute('','');
-    // tab.onclick = openTeam(event,key)
-});
-document.body.appendChild(tbl);
-if(document.getElementById('downloadButton')==null){
-  const downloadButton = document.createElement('button');
-  downloadButton.setAttribute('id','downloadButton')
-  downloadButton.onclick = download_table_as_csv
-  downloadButton.innerText = "Download as CSV"
-  document.body.appendChild(downloadButton)
-}
+    // add tab for each team
+    if (document.getElementById(key+'Tab')==null) {
+      const tab = document.createElement('button')
+      tab.setAttribute('class', 'tablinks');
+      tab.setAttribute('id',key+'Tab');
+      tab.setAttribute('value',key);
+      tab.innerText=key;
+      tab.onclick=openTeam(key)
+      tabDiv.appendChild(tab)
+      
+    }
+  });
+  if (document.getElementById('teamTabs') == null) {
+    document.body.appendChild(tabDiv);
+  }
+  document.body.appendChild(tbl);
+  if (document.getElementById('downloadButton')==null) {
+    const downloadButton = document.createElement('button');
+    downloadButton.setAttribute('id','downloadButton')
+    downloadButton.onclick = download_table_as_csv
+    downloadButton.innerText = "Download as CSV"
+    document.body.appendChild(downloadButton)
+  }
 }
 
 
 function openTeam(evt, team) {
   var i, tabcontent, tablinks;
-
+  if (document.getElementById('teamsIssueTable') != null) {
+    document.getElementById('teamsIssueTable').remove();
+  }
   // Get all elements with class="tabcontent" and hide them
   tabcontent = document.getElementsByClassName("tabcontent");
   for (i = 0; i < tabcontent.length; i++) {
@@ -106,8 +116,8 @@ function openTeam(evt, team) {
   }
 
   // Show the current tab, and add an "active" class to the button that opened the tab
-  document.getElementById(team).style.display = "block";
-  evt.currentTarget.className += " active";
+  // document.getElementById(team+"Tab").style.display = "block";
+  // evt.currentTarget.className += " active";
 
 }
 
