@@ -45,7 +45,7 @@ async function checkCache(org) {
 function addTeamSpan(sortedArray) {
   sortedArray.reverse();
   let tbl = document.createElement('table');
-  tbl.setAttribute('id','table')
+  tbl.setAttribute('id','teamsIssueTable')
   tbl.style.width = '100px';
   tbl.style.border = '1px solid black';
   const firstRow = tbl.insertRow()
@@ -80,7 +80,11 @@ function addTeamSpan(sortedArray) {
     // tab.onclick = openTeam(event,key)
 });
 document.body.appendChild(tbl);
-const downloadLink = document.createElement('a');
+const downloadButton = document.createElement('button');
+downloadButton.setAttribute('id','downloadButton')
+downloadButton.onclick = download_table_as_csv
+downloadButton.innerText = "Download as CSV"
+document.body.appendChild(downloadButton)
 }
 
 
@@ -121,7 +125,7 @@ function sortTeams(teamDictionary){
   return keys
 }
 
-function download_table_as_csv(table_id, separator = ',') {
+function download_table_as_csv(event, table_id='teamsIssueTable', separator = ',') {
   // Select rows from table_id
   var rows = document.querySelectorAll('table#' + table_id + ' tr');
   // Construct csv
@@ -163,9 +167,9 @@ currentOrg();
 
 
 async function start(org){
-  // chrome.storage.session.get("productivityExtensionTeams").then((result) => { teamDict = result["productivityExtensionTeams"]})
+
   if (!(await checkCache(org))) {
-    // ;(async () => { 
+
       teamDict = {}
       const teams = await getTeams(org);
       selectedNumberOfIssues = document.getElementById("teamNumbers");
@@ -194,7 +198,6 @@ async function start(org){
           })
         })
     
-    // })();
 
   } else {
       chrome.storage.session.get("productivityExtensionTeams").then((result) => { 
