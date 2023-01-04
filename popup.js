@@ -80,11 +80,13 @@ function addTeamSpan(sortedArray) {
     // tab.onclick = openTeam(event,key)
 });
 document.body.appendChild(tbl);
-const downloadButton = document.createElement('button');
-downloadButton.setAttribute('id','downloadButton')
-downloadButton.onclick = download_table_as_csv
-downloadButton.innerText = "Download as CSV"
-document.body.appendChild(downloadButton)
+if(document.getElementById('downloadButton')==null){
+  const downloadButton = document.createElement('button');
+  downloadButton.setAttribute('id','downloadButton')
+  downloadButton.onclick = download_table_as_csv
+  downloadButton.innerText = "Download as CSV"
+  document.body.appendChild(downloadButton)
+}
 }
 
 
@@ -159,7 +161,7 @@ const slaQuery = "+firstSeen%3A%2B";
 const issueAppend = "&shortIdLookup=1&statsPeriod=90d";
 let teamDict = {};
 var selectedNumberOfIssues = document.getElementById("teamNumbers");
-selectedNumberOfIssues.addEventListener("change",()=>{ document.getElementById('table').remove(); addTeamSpan(sortedTeams.slice(-selectedNumberOfIssues.value));
+selectedNumberOfIssues.addEventListener("change",()=>{ document.getElementById('teamsIssueTable').remove(); addTeamSpan(sortedTeams.slice(-selectedNumberOfIssues.value));
 })
 var checkOpen = 0
 var sortedTeams = []
