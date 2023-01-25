@@ -1,18 +1,13 @@
 const api = "https://sentry.io/api/0/organizations/"
 let url;
-
+org = ''
 function currentOrg(){
-  // var org = 'testorg-az/'
   chrome.tabs.query({active: true, currentWindow: true}, function(tabs) {
     var activeTab = tabs[0];
     url = activeTab.url; 
-    const org = url.split('/')[4] + "/"
+    org = url.split('/')[4] + "/"
     start(org);
   });
-  // return org;
-  // return "sentry/";
-  // return "testorg-az/";
-  // return "zendesk-us/";
 
 }
 
@@ -28,11 +23,36 @@ async function getTeamIssues(org,team){
   return numIssues
 }
 
-async function checkTeamSLA(teamName, sla=48) {
-  const issues = await fetch(api+org+issueQuery+team['name']+slaQuery+sla+'h'+issueAppend).then(r=>r.json()).then(result => {
+async function getTeamSlaIssues(teamName, org, sla='72h') {
+  issueSlaDict = {}
+  const issues = await fetch(api+org+issueQuery+teamName+slaQuery+sla+issueAppend).then(r=>r.json()).then(result => {
     return result;
   });
-  return issues;
+  let groupIssues = 'groups='
+  if (issues.length > 20) {
+
+  }
+  issues.forEach(issue => {
+    issueSlaDict[issue['id']]=[issue['shortId'],issue['title'],issue['culprit'],issue['permalink']]
+    groupIssues = groupIssues + issue['id'] +'&groups=';
+  })
+  groupIssues = groupIssues.slice(0,-8) + "&";
+  if (groupIssues == '&') {
+    return 'blank'
+  }
+  if ((groupIssues.match(/groups/g) || []).length > 15) {
+    // TODO handle larger than max amount of groups
+  }
+  const issueStats = await fetch(api+org+issueStatsQuery+groupIssues+sentryQueryParam+teamName+slaQuery+sla+issueAppend).then(r=>r.json()).then(result => {
+    return result;
+  })
+  if('detail' in issueStats) {
+    return 'too big'
+  }
+  issueStats.forEach(issue => {
+    issueSlaDict[issue['id']].push(issue['lifetime']['count'],issue['lifetime']['firstSeen'])
+  })
+  return issueSlaDict;
 }
 
 async function checkCache(org) {
@@ -42,10 +62,59 @@ async function checkCache(org) {
   return cacheExists
 }
 
+
+function addSlaTable(team, issues) {
+  let tbl = document.createElement('table');
+  tbl.setAttribute('id','teamsSlaTable')
+  tbl.style.width = '100px';
+  tbl.style.border = '1px solid black';
+  const firstRow = tbl.insertRow()
+  const firstCell = firstRow.insertCell()
+  const secondCell = firstRow.insertCell()
+  const thirdCell = firstRow.insertCell()
+  const fourthCell = firstRow.insertCell()
+  var text = document.createTextNode("Issue ID")
+  firstCell.appendChild(text);
+  firstCell.style.border = '1px solid black';
+  text = document.createTextNode("Issue Name")
+  secondCell.appendChild(text);
+  secondCell.style.border = '1px solid black';
+  text = document.createTextNode("First Seen")
+  thirdCell.appendChild(text);
+  thirdCell.style.border = '1px solid black';
+  text = document.createTextNode("Count")
+  fourthCell.appendChild(text);
+  fourthCell.style.border = '1px solid black';
+
+  for (let key in issues) {
+    const tr = tbl.insertRow()
+    const issueID = tr.insertCell()
+    const issueName = tr.insertCell()
+    const firstSeen = tr.insertCell()
+    const count = tr.insertCell()
+    text = document.createTextNode(issues[key][0])
+    var link = document.createElement("a");
+    link.setAttribute("href", issues[key][3])
+    link.appendChild(text);
+    issueID.appendChild(link);
+    issueID.style.border = '1px solid black';
+    text = document.createTextNode(issues[key][1])
+    issueName.appendChild(text)
+    issueName.style.border = '1px solid black';
+    text = document.createTextNode(issues[key][5])
+    firstSeen.appendChild(text)
+    firstSeen.style.border = '1px solid black';
+    text = document.createTextNode(issues[key][4])
+    count.appendChild(text)
+    count.style.border = '1px solid black';
+  }
+  document.body.appendChild(tbl);
+}
+
 function addTeamSpan(sortedArray) {
   sortedArray.reverse();
   let tbl = document.createElement('table');
-  tbl.setAttribute('id','table')
+  tbl.setAttribute('id','teamsIssueTable')
   tbl.style.width = '100px';
   tbl.style.border = '1px solid black';
   const firstRow = tbl.insertRow()
@@ -57,52 +126,81 @@ function addTeamSpan(sortedArray) {
   text = document.createTextNode("Unresovled issues")
   secondCell.appendChild(text);
   secondCell.style.border = '1px solid black';
-  let tabDiv = document.createElement('div');
+  let tabDiv = document.getElementById('teamTabs') ?? document.createElement('div');
   tabDiv.setAttribute('class','tab');
+  tabDiv.setAttribute('id', 'teamTabs')
 
   sortedArray.forEach(key => {
     const tr = tbl.insertRow()
     const teamName = tr.insertCell()
     const teamIssues = tr.insertCell()
     text = document.createTextNode(key)
-    teamName.appendChild(text)
+    var link = document.createElement("a");
+    link.setAttribute("href",api.replace('/api/0','')+org+'issues/?query=is%3Aunresolved+assigned%3A%23'+key+'&statsPeriod=90d')
+    link.appendChild(text);
+    teamName.appendChild(link)
     teamName.style.border = '1px solid black';
     text = document.createTextNode(teamDict[key])
     teamIssues.appendChild(text)
     teamIssues.style.border = '1px solid black';
 
-    // add tab for each taem
-    const tab = document.createElement('button')
-    tab.setAttribute('class', 'tablinks');
-    tab.setAttribute('id',key);
-    tab.setAttribute('value',key);
-    // tab.setAttribute('','');
-    // tab.onclick = openTeam(event,key)
-});
-document.body.appendChild(tbl);
-const downloadLink = document.createElement('a');
+  });
+  if (document.getElementById('teamTabs') == null) {
+    document.body.appendChild(tabDiv);
+  }
+  document.body.appendChild(tbl);
+  if (document.getElementById('downloadButton')==null) {
+    const downloadButton = document.createElement('button');
+    downloadButton.setAttribute('id','downloadButton')
+    downloadButton.onclick = download_table_as_csv
+    downloadButton.innerText = "Download as CSV"
+    document.body.appendChild(downloadButton)
+  }
 }
 
 
-function openTeam(evt, team) {
-  var i, tabcontent, tablinks;
+async function openTeam(team,sla='72h') {
 
-  // Get all elements with class="tabcontent" and hide them
-  tabcontent = document.getElementsByClassName("tabcontent");
-  for (i = 0; i < tabcontent.length; i++) {
-    tabcontent[i].style.display = "none";
+
+  // // Get all elements with class="tablinks" and remove the class "active"
+  // tablinks = document.getElementsByClassName("tablinks");
+  // for (i = 0; i < tablinks.length; i++) {
+  //   tablinks[i].className = tablinks[i].className.replace(" active", "");
+  // }
+  if (document.getElementById('errorMessage') != null) {
+    document.getElementById('errorMessage').remove();
   }
-
-  // Get all elements with class="tablinks" and remove the class "active"
-  tablinks = document.getElementsByClassName("tablinks");
-  for (i = 0; i < tablinks.length; i++) {
-    tablinks[i].className = tablinks[i].className.replace(" active", "");
+  if (document.getElementById('teamsIssueTable') != null) {
+    document.getElementById('teamsIssueTable').remove();
   }
+  if (document.getElementById('teamsSlaTable') != null) {
+    document.getElementById('teamsSlaTable').remove();
+  }  
+  if (team != 'top-teams') {
+    
+  let org = await chrome.storage.session.get("productivityExtensionOrg").then((result) => { return result["productivityExtensionOrg"] })
+  let issues = await getTeamSlaIssues(team, org, sla)
 
-  // Show the current tab, and add an "active" class to the button that opened the tab
-  document.getElementById(team).style.display = "block";
-  evt.currentTarget.className += " active";
-
+  if (issues != 'blank' && issues != 'too big') {
+    addSlaTable(team,issues);
+  } else if (issues == 'too big') {
+    let paragraph = document.createElement('p');
+    paragraph.setAttribute('id', 'errorMessage');
+    let text = document .createTextNode('The SLA provided produces too many issues to display.');
+    paragraph.appendChild(text);
+    document.body.appendChild(paragraph);
+  } else if (issues == 'blank') {
+    let paragraph = document.createElement('p');
+    paragraph.setAttribute('id', 'errorMessage');
+    let text = document .createTextNode('The SLA provided produces no results.');
+    paragraph.appendChild(text);
+    document.body.appendChild(paragraph);
+  }
+  } else {
+    sortedTeams = sortTeams(teamDict)
+    var sliceNumber = selectedNumberOfIssues.value * -1;
+    addTeamSpan(sortedTeams.slice(sliceNumber));
+  }
 }
 
 
@@ -121,9 +219,12 @@ function sortTeams(teamDictionary){
   return keys
 }
 
-function download_table_as_csv(table_id, separator = ',') {
+function download_table_as_csv(event, table_id='teamsIssueTable', separator = ',') {
   // Select rows from table_id
-  var rows = document.querySelectorAll('table#' + table_id + ' tr');
+  if (document.getElementById('teamsIssueTable') == null) {
+    table_id = 'teamsSlaTable'
+  }
+    var rows = document.querySelectorAll('table#' + table_id + ' tr');
   // Construct csv
   var csv = [];
   for (var i = 0; i < rows.length; i++) {
@@ -151,28 +252,39 @@ function download_table_as_csv(table_id, separator = ',') {
 
 const teamsQuery = "teams/";
 const issueQuery = "issues/?collapse=stats&expand=owners&expand=inbox&limit=1000&query=is:unresolved assigned:%23";
+const issueStatsQuery = "issues-stats/?";
+const sentryQueryParam = "query=is:unresolved assigned:%23";
 const slaQuery = "+firstSeen%3A%2B";
 const issueAppend = "&shortIdLookup=1&statsPeriod=90d";
 let teamDict = {};
 var selectedNumberOfIssues = document.getElementById("teamNumbers");
-selectedNumberOfIssues.addEventListener("change",()=>{ document.getElementById('table').remove(); addTeamSpan(sortedTeams.slice(-selectedNumberOfIssues.value));
+selectedNumberOfIssues.addEventListener("change",()=>{ document.getElementById('teamsIssueTable').remove(); addTeamSpan(sortedTeams.slice(-selectedNumberOfIssues.value));
 })
+var select = document.getElementById("team-sla-name");
+var slaSelect = document.getElementById("teamSLA");
+select.addEventListener("change",()=>{openTeam(select.value,slaSelect.value);});
+slaSelect.addEventListener("change",()=>{openTeam(select.value,slaSelect.value);});
 var checkOpen = 0
 var sortedTeams = []
 currentOrg();
 
 
 async function start(org){
-  // chrome.storage.session.get("productivityExtensionTeams").then((result) => { teamDict = result["productivityExtensionTeams"]})
+
   if (!(await checkCache(org))) {
-    // ;(async () => { 
+
       teamDict = {}
       const teams = await getTeams(org);
+      select.options[select.options.length] = new Option('Top teams', 'top-teams')
+      for(index in teams) {
+        select.options[select.options.length] = new Option(teams[index]['name'], teams[index]['name']);
+      }
+     
       selectedNumberOfIssues = document.getElementById("teamNumbers");
       teams.forEach(element => {
     
           var timeNow = Date.now();
-          while(Date.now()<timeNow+120){
+          while(Date.now()<timeNow+140){
             var x = 1;
           }
           ;(async () => { ;
@@ -194,11 +306,14 @@ async function start(org){
           })
         })
     
-    // })();
 
   } else {
       chrome.storage.session.get("productivityExtensionTeams").then((result) => { 
          teamDict = result["productivityExtensionTeams"]
+         select.options[select.options.length] = new Option('Top teams', 'top-teams')
+         for(index in teamDict) {
+          select.options[select.options.length] = new Option(index, index);
+         }
          sortedTeams = sortTeams(teamDict)
          var sliceNumber = selectedNumberOfIssues.value * -1;
          addTeamSpan(sortedTeams.slice(sliceNumber));
