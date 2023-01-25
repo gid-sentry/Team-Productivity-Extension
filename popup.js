@@ -29,29 +29,20 @@ async function getTeamSlaIssues(teamName, org, sla='72h') {
     return result;
   });
   let groupIssues = 'groups='
-  console.log("group issues")
-  console.log(groupIssues)
   if (issues.length > 20) {
 
   }
-  console.log(api+org+issueStatsQuery+groupIssues+sentryQueryParam+teamName+slaQuery+sla+issueAppend)
   issues.forEach(issue => {
     issueSlaDict[issue['id']]=[issue['shortId'],issue['title'],issue['culprit'],issue['permalink']]
     groupIssues = groupIssues + issue['id'] +'&groups=';
   })
-  console.log("group issues")
-  console.log(groupIssues)
-  console.log(api+org+issueStatsQuery+groupIssues+sentryQueryParam+teamName+slaQuery+sla+issueAppend)
   groupIssues = groupIssues.slice(0,-8) + "&";
-  console.log("group issues")
-  console.log(groupIssues)
   if (groupIssues == '&') {
     return 'blank'
   }
   if ((groupIssues.match(/groups/g) || []).length > 15) {
     // TODO handle larger than max amount of groups
   }
-  console.log(api+org+issueStatsQuery+groupIssues+sentryQueryParam+teamName+slaQuery+sla+issueAppend)
   const issueStats = await fetch(api+org+issueStatsQuery+groupIssues+sentryQueryParam+teamName+slaQuery+sla+issueAppend).then(r=>r.json()).then(result => {
     return result;
   })
