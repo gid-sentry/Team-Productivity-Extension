@@ -5,8 +5,9 @@ function currentOrg(){
   chrome.tabs.query({active: true, currentWindow: true}, function(tabs) {
     var activeTab = tabs[0];
     url = activeTab.url; 
-    org = url.split('/')[4] + "/"
-    start(org);
+    const org = url.split('.sentry.io')[0]
+    start(org.substring(8) + '/');
+    // start(org);
   });
 
 }
